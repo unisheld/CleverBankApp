@@ -1,0 +1,9 @@
+bank:
+  interestRate: 0.01 # Процентная ставка (1%)
+  interestCalculationMonth: 0  # Месяц для начисления процентов (0 для января, 1 для февраля и так далее)
+  schedule:
+    checkIntervalMinutes: 0.5 # Периодичность проверки в минутах
+  database:
+    url: "jdbc:postgresql://localhost:5432/cleverbank"
+    username: "postgres"
+    password: ""
