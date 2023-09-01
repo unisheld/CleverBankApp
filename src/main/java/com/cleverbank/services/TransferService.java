@@ -4,6 +4,7 @@ import com.cleverbank.database.TransactionSaver;
 import com.cleverbank.models.Account;
 import com.cleverbank.models.Bank;
 
+import com.cleverbank.models.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class TransferService implements com.cleverbank.interfaces.TransferServic
 
                         // Здесь сохраняем информацию о транзакции
                         transactionSave.saveTransferTransaction(sender, receiver, amount);
+                        checkGeneratorService.generateTransferCheck(TransactionType.TRANSFER, senderBank.getName(), receiverBank.getName(), sender, receiver, amount);
 
                         return true;
                     }
@@ -60,7 +62,7 @@ public class TransferService implements com.cleverbank.interfaces.TransferServic
 
                                 // Здесь также сохраняем информацию о транзакции
                                 transactionSave.saveTransferTransaction(sender, receiver, amount);
-
+                                checkGeneratorService.generateTransferCheck(TransactionType.TRANSFER, senderBank.getName(), receiverBank.getName(), sender, receiver, amount);
                                 return true;
                             }
                         }
