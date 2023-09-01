@@ -1,5 +1,6 @@
 package com.cleverbank;
 
+import com.cleverbank.database.DatabaseReader;
 import com.cleverbank.database.TransactionDAO;
 import com.cleverbank.database.DatabaseConnector;
 import com.cleverbank.database.TransactionSaver;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.sql.Connection;
 
 /**
  * Главный класс приложения.
@@ -27,6 +29,7 @@ public class Main {
         String dbUsername = appConfig.getDbUsername();
         String dbPassword = appConfig.getDbPassword();
 
+        // Инициализация соединения с базой данных
         DatabaseConnector.initialize(dbUrl, dbUsername, dbPassword);
 
         // Создание банков и клиентов
@@ -57,11 +60,34 @@ public class Main {
             System.out.println("Не удалось выполнить перевод.");
         }
 
-        // Завершение приложения
+        // Закрытие соединения с базой данных
         try {
             DatabaseConnector.closeConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 }
+
+
+// Вызов методов для чтения данных
+//        try {
+//            Connection connection = DatabaseConnector.getConnection();
+//
+//            System.out.println("Чтение данных о счетах:");
+//            DatabaseReader.readAccounts(connection);
+//
+//            System.out.println("\nЧтение данных о банках:");
+//            DatabaseReader.readBanks(connection);
+//
+//            System.out.println("\nЧтение данных о транзакциях:");
+//            DatabaseReader.readTransactions(connection);
+//
+//            System.out.println("\nЧтение данных о клиентах:");
+//            DatabaseReader.readClients(connection);
+//
+//            DatabaseConnector.closeConnection();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
