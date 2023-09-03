@@ -4,7 +4,6 @@ import com.cleverbank.database.*;
 import com.cleverbank.models.*;
 import com.cleverbank.services.*;
 import com.cleverbank.utils.AppConfig;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,7 +16,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-@Slf4j
 public class Main {
     public static void main(String[] args) {
         try {
