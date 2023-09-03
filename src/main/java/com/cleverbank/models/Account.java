@@ -7,16 +7,35 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Модель счета в банке.
+ * Класс, представляющий счет.
  */
 @Data
 @AllArgsConstructor
 public class Account {
-    private long id;
+    private int id;
     private double balance;
     private Client client;
     private Bank bank;
     private LocalDateTime dateOpen;
+
+    /**
+     * Конструктор для создания объекта Account с указанными параметрами.
+     *
+     * @param id       Идентификатор счета.
+     * @param balance  Баланс счета.
+     * @param clientId Идентификатор клиента.
+     * @param clientName Имя клиента.
+     * @param bankId   Идентификатор банка.
+     * @param bankName Имя банка.
+     * @param dateOpen Дата открытия счета.
+     */
+    public Account(int id, double balance, long clientId, String clientName, long bankId, String bankName, LocalDateTime dateOpen) {
+        this.id = id;
+        this.balance = balance;
+        this.client = new Client(clientId, clientName);
+        this.bank = new Bank(bankId, bankName);
+        this.dateOpen = dateOpen;
+    }
 
     /**
      * Внесение средств на счет.

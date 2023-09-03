@@ -18,6 +18,8 @@ public class AppConfig {
     private String dbUsername;
     private String dbPassword;
 
+    public int clientId;
+
     /**
      * Получить процентную ставку.
      *
@@ -73,6 +75,15 @@ public class AppConfig {
     }
 
     /**
+     * Получить идентификатор клиента.
+     *
+     * @return Идентификатор клиента.
+     */
+    public int getClientId() {
+        return clientId;
+    }
+
+    /**
      * Загружает конфигурацию из YAML файла.
      *
      * @param configFile Путь к конфигурационному файлу YAML.
@@ -83,6 +94,7 @@ public class AppConfig {
             Map<String, Object> config = yaml.load(fis);
 
             Map<String, Object> bankConfig = (Map<String, Object>) config.get("bank");
+            clientId = getIntValue(bankConfig, "clientId");
             interestRate = getDoubleValue(bankConfig, "interestRate");
             interestCalculationMonth = getIntValue(bankConfig, "interestCalculationMonth");
 

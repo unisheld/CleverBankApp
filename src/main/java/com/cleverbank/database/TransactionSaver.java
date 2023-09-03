@@ -25,8 +25,10 @@ public class TransactionSaver {
      * @param amount  Сумма пополнения.
      */
     public void saveDepositTransaction(Account account, double amount) {
-        saveTransaction(account, null, amount, TransactionType.DEPOSIT);
+
+        saveTransaction(account, account, amount, TransactionType.DEPOSIT);
     }
+
 
     /**
      * Сохраняет транзакцию типа "Снятие" в базе данных.
@@ -35,7 +37,7 @@ public class TransactionSaver {
      * @param amount  Сумма снятия.
      */
     public void saveWithdrawTransaction(Account account, double amount) {
-        saveTransaction(account, null, amount, TransactionType.WITHDRAW);
+        saveTransaction(account, account, amount, TransactionType.WITHDRAW);
     }
 
     /**

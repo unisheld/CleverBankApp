@@ -1,135 +1,169 @@
 package com.cleverbank.database;
 
+import com.cleverbank.models.Account;
+
+import com.cleverbank.models.Transaction;
+
 import java.sql.*;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Класс для чтения данных из базы данных.
  */
 public class DatabaseReader {
+    private Connection connection;
 
     /**
-     * Читает информацию о счетах из базы данных и выводит ее в консоль.
+     * Конструктор для инициализации объекта DatabaseReader.
      *
-     * @param connection Соединение с базой данных.
-     * @throws SQLException Если произошла ошибка при чтении данных.
+     * @param connection Объект соединения с базой данных.
      */
-    public static void readAccounts(Connection connection) throws SQLException {
-        String query = "SELECT a.id, a.balance, c.name AS client_name, b.name AS bank_name, date_open " +
-                "FROM accounts a " +
-                "JOIN clients c ON a.client_id = c.id " +
-                "JOIN banks b ON a.bank_id = b.id";
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        ResultSet resultSet = preparedStatement.executeQuery();
-
-        System.out.println("Список счетов:");
-
-        while (resultSet.next()) {
-            long id = resultSet.getLong("id");
-            double balance = resultSet.getDouble("balance");
-            String clientName = resultSet.getString("client_name");
-            String bankName = resultSet.getString("bank_name");
-            Timestamp dateOpen = resultSet.getTimestamp("date_open");
-
-            System.out.println("ID: " + id + ", Баланс: " + balance + ", Клиент: " + clientName + ", Банк: " + bankName + ", Дата открытия счета: " + dateOpen);
-        }
-
-        resultSet.close();
-        preparedStatement.close();
+    public DatabaseReader(Connection connection) {
+        this.connection = connection;
     }
 
     /**
-     * Читает информацию о банках из базы данных и выводит ее в консоль.
+     * Чтение транзакций для указанного клиента до заданной даты.
      *
-     * @param connection Соединение с базой данных.
-     * @throws SQLException Если произошла ошибка при чтении данных.
+     * @param clientId Идентификатор клиента.
+     * @param endDate  Дата окончания периода.
+     * @return Список транзакций клиента.
+     * @throws SQLException Если произошла ошибка при чтении из базы данных.
      */
-    public static void readBanks(Connection connection) throws SQLException {
-        String query = "SELECT * FROM banks";
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        ResultSet resultSet = preparedStatement.executeQuery();
+    public List<Transaction> readClientTransactions(int clientId, LocalDateTime endDate) throws SQLException {
+        List<Transaction> transactions = new ArrayList<>();
 
-        System.out.println("Список банков:");
+        String query = "SELECT * FROM transactions " +
+                "WHERE (sender_account_id IN (SELECT id FROM accounts WHERE client_id = ?) " +
+                "       OR receiver_account_id IN (SELECT id FROM accounts WHERE client_id = ?))" +
+                "AND timestamp >= (SELECT date_open FROM accounts WHERE id = sender_account_id) " +
+                "AND timestamp <= ?";
 
-        while (resultSet.next()) {
-            long id = resultSet.getLong("id");
-            String name = resultSet.getString("name");
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setLong(1, clientId);
+            preparedStatement.setLong(2, clientId);
+            preparedStatement.setTimestamp(3, Timestamp.valueOf(endDate));
 
-            System.out.println("ID: " + id + ", Название банка: " + name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    long id = resultSet.getLong("id");
+                    long senderAccountId = resultSet.getLong("sender_account_id");
+                    long receiverAccountId = resultSet.getLong("receiver_account_id");
+                    double amount = resultSet.getDouble("amount");
+                    LocalDateTime timestamp = resultSet.getTimestamp("timestamp").toLocalDateTime();
+                    String transactionType = resultSet.getString("trans_type");
+                    transactions.add(new Transaction(id, senderAccountId, receiverAccountId, amount, timestamp, transactionType));
+                }
+            }
         }
 
-        resultSet.close();
-        preparedStatement.close();
+        return transactions;
     }
 
     /**
-     * Читает информацию о транзакциях из базы данных и выводит ее в консоль.
+     * Получение списка счетов для указанного клиента.
      *
-     * @param connection Соединение с базой данных.
-     * @throws SQLException Если произошла ошибка при чтении данных.
+     * @param clientId Идентификатор клиента.
+     * @return Список счетов клиента.
+     * @throws SQLException Если произошла ошибка при чтении из базы данных.
      */
-    public static void readTransactions(Connection connection) throws SQLException {
-        String query = "SELECT * FROM transactions";
+    public List<Account> getAccountsForClient(long clientId) throws SQLException {
+        List<Account> accounts = new ArrayList<>();
 
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        ResultSet resultSet = preparedStatement.executeQuery();
+        String query = "SELECT accounts.id AS id, accounts.balance, clients.name AS clientName, " +
+                "accounts.bank_id, banks.name AS bankName, accounts.date_open " +
+                "FROM accounts " +
+                "INNER JOIN clients ON accounts.client_id = clients.id " +
+                "INNER JOIN banks ON accounts.bank_id = banks.id " +
+                "WHERE accounts.client_id = ?";
 
-        // Определите ширину каждого столбца для выравнивания
-        int idWidth = 5; // Ширина столбца ID
-        int senderAccountIdWidth = 20; // Ширина столбца "Счет отправителя ID"
-        int receiverAccountIdWidth = 20; // Ширина столбца "Счет получателя"
-        int amountWidth = 10; // Ширина столбца "Сумма"
-        int timestampWidth = 20; // Ширина столбца "Дата"
-        int transTypeWidth = 15; // Ширина столбца "Тип транзакции"
-
-        // Форматируйте заголовок таблицы
-        String headerFormat = "%-" + idWidth + "s%-" + senderAccountIdWidth + "s%-" + receiverAccountIdWidth + "s%-" + amountWidth + "s%-" + timestampWidth + "s%-" + transTypeWidth + "s";
-        System.out.printf(headerFormat, "ID", "Счет отправителя ID", "Счет получателя", "Сумма", "Дата", "Тип транзакции");
-        System.out.println();
-
-        // Создайте форматтер для даты и времени
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        while (resultSet.next()) {
-            long id = resultSet.getLong("id");
-            long senderAccountId = resultSet.getLong("sender_account_id");
-            long receiverAccountId = resultSet.getLong("receiver_account_id");
-            double amount = resultSet.getDouble("amount");
-            Timestamp timestamp = resultSet.getTimestamp("timestamp");
-            String transType = resultSet.getString("trans_type");
-
-            // Форматируйте данные для каждой строки
-            String formattedTimestamp = dateFormat.format(timestamp);
-            String rowFormat = "%-" + idWidth + "d%-" + senderAccountIdWidth + "d%-" + receiverAccountIdWidth + "d%-" + amountWidth + ".2f%-" + timestampWidth + "s%-" + transTypeWidth + "s";
-            System.out.printf(rowFormat, id, senderAccountId, receiverAccountId, amount, formattedTimestamp, transType);
-            System.out.println();
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setLong(1, clientId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    double balance = resultSet.getDouble("balance");
+                    String clientName = resultSet.getString("clientName");
+                    long bankId = resultSet.getLong("bank_id");
+                    String bankName = resultSet.getString("bankName");
+                    LocalDateTime dateOpen = resultSet.getTimestamp("date_open").toLocalDateTime();
+                    accounts.add(new Account(id, balance, clientId, clientName, bankId, bankName, dateOpen));
+                }
+            }
         }
 
-        resultSet.close();
-        preparedStatement.close();
+        return accounts;
     }
 
     /**
-     * Читает информацию о клиентах из базы данных и выводит ее в консоль.
+     * Получение счета по его номеру.
      *
-     * @param connection Соединение с базой данных.
-     * @throws SQLException Если произошла ошибка при чтении данных.
+     * @param accountNumber Номер счета.
+     * @return Объект счета или null, если счет не найден.
+     * @throws SQLException Если произошла ошибка при чтении из базы данных.
      */
-    public static void readClients(Connection connection) throws SQLException {
-        String query = "SELECT * FROM clients";
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        ResultSet resultSet = preparedStatement.executeQuery();
+    public Account getAccountByNumber(int accountNumber) throws SQLException {
+        String query = "SELECT accounts.id AS id, accounts.balance, clients.name AS clientName, " +
+                "accounts.client_id AS client_id, accounts.bank_id, banks.name AS bankName, accounts.date_open " +
+                "FROM accounts " +
+                "INNER JOIN clients ON accounts.client_id = clients.id " +
+                "INNER JOIN banks ON accounts.bank_id = banks.id " +
+                "WHERE accounts.id = ?";
 
-        System.out.println("Список клиентов:");
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setInt(1, accountNumber);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    double balance = resultSet.getDouble("balance");
+                    long clientId = resultSet.getLong("client_id");
+                    String clientName = resultSet.getString("clientName");
+                    long bankId = resultSet.getLong("bank_id");
+                    String bankName = resultSet.getString("bankName");
+                    LocalDateTime dateOpen = resultSet.getTimestamp("date_open").toLocalDateTime();
+                    return new Account(id, balance, clientId, clientName, bankId, bankName, dateOpen);
+                } else {
+                    return null; // Счет с указанным номером не найден
+                }
+            }
+        }
+    }
 
-        while (resultSet.next()) {
-            long id = resultSet.getLong("id");
-            String name = resultSet.getString("name");
+    /**
+     * Получение списка всех счетов.
+     *
+     * @return Список всех счетов.
+     * @throws SQLException Если произошла ошибка при чтении из базы данных.
+     */
+    public List<Account> getAllAccounts() throws SQLException {
+        List<Account> accounts = new ArrayList<>();
 
-            System.out.println("ID: " + id + ", Имя: " + name);
+        String query = "SELECT accounts.id AS id, accounts.balance, clients.name AS clientName, " +
+                "accounts.client_id AS client_id, accounts.bank_id, banks.name AS bankName, accounts.date_open " +
+                "FROM accounts " +
+                "INNER JOIN clients ON accounts.client_id = clients.id " +
+                "INNER JOIN banks ON accounts.bank_id = banks.id";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                double balance = resultSet.getDouble("balance");
+                long clientId = resultSet.getLong("client_id");
+                String clientName = resultSet.getString("clientName");
+                long bankId = resultSet.getLong("bank_id");
+                String bankName = resultSet.getString("bankName");
+                LocalDateTime dateOpen = resultSet.getTimestamp("date_open").toLocalDateTime();
+
+                // Создаем объект Account и добавляем его в список
+                Account account = new Account(id, balance, clientId, clientName, bankId, bankName, dateOpen);
+                accounts.add(account);
+            }
         }
 
-        resultSet.close();
-        preparedStatement.close();
+        return accounts;
     }
 }

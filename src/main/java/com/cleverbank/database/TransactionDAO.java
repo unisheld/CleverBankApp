@@ -10,7 +10,6 @@ import java.sql.SQLException;
  * Класс для сохранения транзакций в базу данных.
  */
 public class TransactionDAO {
-
     /**
      * Сохраняет транзакцию в базе данных.
      *
@@ -19,6 +18,7 @@ public class TransactionDAO {
      */
     public void save(Transaction transaction) throws SQLException {
         String insertQuery = "INSERT INTO transactions (sender_account_id, receiver_account_id, amount, timestamp, trans_type) VALUES (?, ?, ?, ?, ?)";
+
         try (Connection connection = DatabaseConnector.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
             preparedStatement.setLong(1, transaction.getSenderAccountId());
@@ -28,6 +28,9 @@ public class TransactionDAO {
             preparedStatement.setString(5, transaction.getTransactionType());
 
             preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Ошибка при сохранении транзакции: " + e.getMessage());
+            throw new SQLException("Ошибка при сохранении транзакции", e);
         }
     }
 }
