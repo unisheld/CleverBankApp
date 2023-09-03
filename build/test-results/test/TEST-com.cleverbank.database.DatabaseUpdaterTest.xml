@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.cleverbank.database.DatabaseUpdaterTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2023-09-03T11:17:57" hostname="DESKTOP-2FGLRB4" time="1.517">
+  <properties/>
+  <testcase name="testUpdateAccountBalance_WhenAccountDoesNotExist()" classname="com.cleverbank.database.DatabaseUpdaterTest" time="1.493"/>
+  <testcase name="testAccountExists_WhenAccountDoesNotExist()" classname="com.cleverbank.database.DatabaseUpdaterTest" time="0.011"/>
+  <testcase name="testAccountExists_WhenAccountExists()" classname="com.cleverbank.database.DatabaseUpdaterTest" time="0.005"/>
+  <testcase name="testUpdateAccountBalance_WhenAccountExists()" classname="com.cleverbank.database.DatabaseUpdaterTest" time="0.005"/>
+  <system-out><![CDATA[Счет с идентификатором 2 не существует в базе данных.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
