@@ -1,18 +1,20 @@
 package com.cleverbank.services;
 
+import com.cleverbank.database.DatabaseUpdater;
 import com.cleverbank.database.TransactionSaver;
 import com.cleverbank.exceptions.InsufficientFundsException;
 import com.cleverbank.interfaces.TransactionService;
 import com.cleverbank.models.Account;
-import lombok.Data;
+import lombok.AllArgsConstructor;
 
 /**
  * Сервис для выполнения операции снятия средств со счета.
  */
-@Data
+@AllArgsConstructor
 public class WithdrawService implements TransactionService {
-    private final TransactionSaver transactionSave;
+    private final TransactionSaver transactionSaver;
     private final CheckGeneratorService checkGeneratorService;
+    private final DatabaseUpdater databaseUpdater;
 
     /**
      * Выполняет операцию снятия средств со счета.
@@ -23,11 +25,21 @@ public class WithdrawService implements TransactionService {
      */
     @Override
     public void execute(Account account, double amount) {
+        if (account == null) {
+            System.out.println("Ошибка: Счет для снятия не существует.");
+            return;
+        }
+
         if (account.getBalance() >= amount) {
             account.setBalance(account.getBalance() - amount);
 
+            // Обновляем баланс счета в базе данных
+            databaseUpdater.updateAccountBalance(account.getId(), account.getBalance());
+
             // Сохраняем информацию о транзакции
-            transactionSave.saveWithdrawTransaction(account, amount);
+            transactionSaver.saveWithdrawTransaction(account, amount);
+
+            // Генерируем чек
             checkGeneratorService.generateWithdrawCheck(account.getBank().getName(), account, amount);
         } else {
             throw new InsufficientFundsException("Недостаточно средств на счете.");

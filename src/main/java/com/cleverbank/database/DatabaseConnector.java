@@ -5,10 +5,10 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Управляет соединением с базой данных.
+ * Класс для управления соединением с базой данных.
  */
 public class DatabaseConnector {
-    private static Connection connection = null;
+    private static Connection connection;
 
     /**
      * Инициализирует соединение с базой данных. Если соединение уже открыто, оно закрывается перед инициализацией нового.
@@ -16,32 +16,30 @@ public class DatabaseConnector {
      * @param url      URL базы данных.
      * @param username Имя пользователя для подключения.
      * @param password Пароль пользователя для подключения.
+     * @throws SQLException Если произошла ошибка при инициализации соединения.
      */
-    public static void initialize(String url, String username, String password) {
-        if (connection != null) {
-            // Если соединение уже открыто, закрываем его перед инициализацией нового.
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+    public static void initialize(String url, String username, String password) throws SQLException {
+        // Попытка закрыть текущее соединение, если оно открыто
+        closeConnection();
 
         try {
             connection = DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
-            e.printStackTrace();
+            // Обработка ошибки при инициализации соединения
+            System.err.println("Ошибка при инициализации соединения с базой данных: " + e.getMessage());
+            throw e;
         }
     }
 
     /**
      * Получает текущее соединение с базой данных.
      *
-     * @return Соединение с базой данных.
-     * @throws SQLException Если произошла ошибка при получении соединения или соединение не инициализировано.
+     * @return Объект соединения с базой данных.
+     * @throws SQLException Если соединение не инициализировано или закрыто.
      */
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
+            // Обработка ошибки, если соединение не инициализировано или закрыто
             throw new SQLException("Соединение не инициализировано или закрыто.");
         }
         return connection;
@@ -49,12 +47,15 @@ public class DatabaseConnector {
 
     /**
      * Закрывает текущее соединение с базой данных, если оно открыто.
-     *
-     * @throws SQLException Если произошла ошибка при закрытии соединения.
      */
-    public static void closeConnection() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
+    public static void closeConnection() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            // Обработка ошибки при закрытии соединения
+            System.err.println("Ошибка при закрытии соединения с базой данных: " + e.getMessage());
         }
     }
 }
